@@ -1,3 +1,5 @@
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js';
 
-export default makeNPMConfigVariants(makeBaseNPMConfig());
+export default makeNPMConfigVariants(
+  makeBaseNPMConfig({ watchPackages: ['integrations', 'node', 'react', 'tracing'] }),
+);

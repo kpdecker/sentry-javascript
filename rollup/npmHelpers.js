@@ -7,19 +7,26 @@ import * as path from 'path';
 
 import deepMerge from 'deepmerge';
 
-import { makeConstToVarPlugin, makeNodeResolvePlugin, makeSucrasePlugin } from './plugins/index.js';
+import {
+  makeConstToVarPlugin,
+  makeNodeResolvePlugin,
+  makeSucrasePlugin,
+  makeWatchDependenciesPlugin,
+} from './plugins/index.js';
 
 const packageDotJSON = require(path.resolve(process.cwd(), './package.json'));
 
 export function makeBaseNPMConfig(options = {}) {
-  const { entrypoint, esModuleInterop, hasBundles } = options;
+  const { entrypoint, esModuleInterop, hasBundles, watchPackages = [] } = options;
 
+  const watchDependenciesPlugin = makeWatchDependenciesPlugin(watchPackages);
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
   const constToVarPlugin = makeConstToVarPlugin();
 
   return {
     input: entrypoint || 'src/index.ts',
+
     output: {
       // an appropriately-named directory will be added to this base value when we specify either a cjs or esm build
       dir: hasBundles ? 'build/npm' : 'build',
@@ -55,7 +62,9 @@ export function makeBaseNPMConfig(options = {}) {
       // `esModule` -> don't emit helpers
       interop: esModuleInterop ? 'auto' : 'esModule',
     },
-    plugins: [nodeResolvePlugin, sucrasePlugin, constToVarPlugin],
+
+    plugins: [watchDependenciesPlugin, nodeResolvePlugin, sucrasePlugin, constToVarPlugin],
+
     // don't include imported modules from outside the package in the final output
     external: [
       ...builtinModules,

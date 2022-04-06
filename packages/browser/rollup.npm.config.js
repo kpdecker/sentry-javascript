@@ -1,8 +1,9 @@
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js';
 
 export default makeNPMConfigVariants(
-  makeBaseNPMConfig(
+  makeBaseNPMConfig({
     // packages with bundles have a different build directory structure
-    { hasBundles: true },
-  ),
+    hasBundles: true,
+    watchPackages: ['core'],
+  }),
 );
