@@ -174,7 +174,8 @@ export function eventToSentryRequest(event: Event, api: APIDetails): SentryReque
     event.tags.JSONStringifyError = true;
     event.extra.JSONStringifyError = err;
     try {
-      body = JSON.stringify(normalize(event));
+      // renormalize very deeply, in hopes of finding `'[Circular ~]'` somewhere in the output
+      body = JSON.stringify(normalize(event, 20));
     } catch (newErr) {
       // At this point even renormalization hasn't worked, meaning something about the event data has gone very wrong.
       // Time to cut our losses and record only the new error. With luck, even in the problematic cases we're trying to

@@ -1,0 +1,31 @@
+@sentry/types : [] - 0
+@sentry/utils : [ 'types' ] - 1
+@sentry/hub : [ 'types', 'utils' ] - 2
+@sentry/integrations : [ 'types', 'utils' ] - 2
+@sentry/minimal : [ 'hub', 'types' ] - 3
+@sentry/core : [ 'hub', 'minimal', 'types', 'utils' ] - 4
+@sentry/browser : [ 'core', 'types', 'utils' ] - 5
+@sentry/node : [ 'core', 'hub', 'types', 'utils' ] - 5
+@sentry/react : [ 'browser', 'minimal', 'types', 'utils' ] - 6
+@sentry/tracing : [ 'hub', 'minimal', 'types', 'utils', 'browser' ] - 6
+@sentry/vue : [ 'browser', 'core', 'minimal', 'types', 'utils' ] - 6
+@sentry/wasm : [ 'browser', 'types' ] - 6
+@sentry/serverless : [ 'minimal', 'node', 'tracing', 'types', 'utils' ] - 7
+@sentry/gatsby : [ 'react', 'tracing', 'webpack-plugin', 'types' ] - 7
+@sentry/nextjs : ['core', 'hub', 'integrations', 'node', 'react', 'tracing', 'utils', 'webpack-plugin', 'types'] - 7
+
+@sentry/types : [] - 0
+@sentry/utils : [ 'types' ] - 1
+@sentry/hub : [  'utils' ] - 2
+@sentry/integrations : [  'utils' ] - 2
+@sentry/minimal : [ 'hub' ] - 3
+@sentry/core : [  'minimal' ] - 4
+@sentry/browser : [ 'core' ] - 5
+@sentry/node : [ 'core' ] - 5
+@sentry/react : [ 'browser' ] - 6
+@sentry/tracing : [ 'browser' ] - 6
+@sentry/vue : [ 'browser' ] - 6
+@sentry/wasm : [ 'browser' ] - 6
+@sentry/serverless : [ 'node', 'tracing' ] - 7
+@sentry/gatsby : [ 'react', 'tracing' ] - 7
+@sentry/nextjs : [ 'integrations', 'node', 'react', 'tracing'] - 7

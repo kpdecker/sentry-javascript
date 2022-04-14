@@ -42,3 +42,8 @@ tmp.js
 eslintcache/*
 
 *.d.ts
+
+packages/*/esm-test/**/*.ts
+packages/*/esm-test/**/*.map
+packages/*/dist-test/**/*.ts
+packages/*/dist-test/**/*.map

@@ -1,0 +1,237 @@
+/**
+ * Rollup config docs: https://rollupjs.org/guide/en/#big-list-of-options
+ * List of plugins: https://github.com/rollup/awesome
+ */
+
+import { builtinModules } from 'module';
+import * as path from 'path';
+
+import cartesian from 'cartesian';
+// https://github.com/rollup/plugins/tree/master/packages/sucrase
+import sucrase from '@rollup/plugin-sucrase';
+// https://github.com/rollup/plugins/tree/master/packages/node-resolve
+import resolve from '@rollup/plugin-node-resolve';
+// https://github.com/rollup/plugins/tree/master/packages/replace
+import replace from '@rollup/plugin-replace';
+// https://github.com/rollup/plugins/tree/master/packages/buble
+import buble from '@rollup/plugin-buble';
+// https://github.com/wessberg/rollup-plugin-ts
+import ts from 'rollup-plugin-ts';
+// https://github.com/rollup/plugins/tree/master/packages/strip
+import strip from '@rollup/plugin-strip';
+// https://github.com/rollup/plugins/tree/master/packages/commonjs
+import commonjs from '@rollup/plugin-commonjs';
+
+import packageDotJSON from './package.json';
+
+Error.stackTraceLimit = Infinity;
+
+// function makeConfigs({ moduleSystem, jsVersion, isDebug, packageOptions }) {
+//   // in `package.json`, the entrypoint of the cjs build
+//   const { entryPointKey } = moduleSystem;
+//   const entryPointPath = packageDotJSON[entryPointKey];
+//   const entryPointDir = entryPointPath.split('/')[0];
+//   const outputDir = path.join(entryPointDir, jsVersion);
+//   const config = {};
+// }
+
+const moduleSystems = [
+  {
+    name: 'cjs',
+    entryPointKey: 'main',
+    dir: 'dist',
+  },
+  {
+    name: 'esm',
+    entryPointKey: 'module',
+    dir: 'esm',
+  },
+];
+
+const jsVersions = [
+  {
+    version: 'es5',
+    plugins: [
+      // the slow way to do down-compiling - only include for es5 builds
+      ts({
+        // these take the place of tsconfig's options of the same respective names
+        // right now it's everything, but once we deal with node types and dom types, it may not be
+        // include: ['src/**/*'],
+        // exclude: platform.exclude,
+
+        // don't type check, because at this point we just have plain JS, and TS starts seeing nefarious phantom
+        // `any`s and `never`s lurking about and doesn't like it
+        transpileOnly: true,
+
+        tsconfig: {
+          downlevelIteration: true,
+          importHelpers: true,
+          target: 'es5',
+
+          // are these needed?
+          // inlineSources: true,
+          // sourceMap: true,
+
+          // When `strict` is on, by default emitted files will get `"use strict";` added to the top. We don't
+          // want that, because in a bundle that means that we've just turned on use-strict mode for the entire
+          // bundle, which may or may not be what the user was expecting.
+          // TODO figure out if use-strict is a thing for ES6
+          alwaysStrict: false,
+          // this also suppresses use-strict
+          // TODO - see if they're both necessary
+          noImplicitUseStrict: true,
+
+          // is this necessary?
+          // moduleResolution: 'node',
+
+          // this might break watch mode
+          noEmitOnError: true,
+
+          // meh? why not?
+          preserveWatchOutput: true,
+
+          noErrorTruncation: true,
+
+          types: ['node'],
+        },
+      }),
+    ],
+  },
+  { version: 'es6' },
+];
+
+const debugBuildFlags = [
+  { isDebug: true },
+  {
+    isDebug: false,
+    plugins: [
+      // remove all calls to `console` and `logger` methods - must come after compilation from TS -> JS
+      strip({
+        include: ['src/**/*'],
+        functions: ['console.*', 'logger.*'],
+      }),
+    ],
+  },
+];
+
+const configCombos = cartesian({ moduleSystem: moduleSystems, jsVersion: jsVersions, debugConfig: debugBuildFlags });
+
+// console.log(configCombos);
+
+const baseRollupConfig = {
+  input: 'src/index.ts',
+  output: {
+    // equivalent to tsconfig's `sourceMap` option
+    sourcemap: true,
+    // output individual files rather than one big bundle
+    preserveModules: true,
+  },
+  plugins: [
+    // fast TS compiling (but without typechecking or emitting declaration files)
+    sucrase({
+      transforms: ['typescript'],
+    }),
+  ],
+  // don't include any of these in the output, even if our code imports them
+  // not clear if this is necessary for npm build, but might be for CDN bundles
+  external: [
+    ...builtinModules,
+    ...Object.keys(packageDotJSON.dependencies || {}),
+    ...Object.keys(packageDotJSON.devDependencies || {}),
+    ...Object.keys(packageDotJSON.peerDependencies || {}),
+  ],
+  treeshake: {
+    moduleSideEffects: packageDotJSON.sideEffects,
+    preset: 'smallest',
+
+    // These are the defaults with `preset: 'smallest'`, retained here for the moment in case something breaks and we
+    // need to override one of them. Once the new bundling has been battle-tested a bit, they can probably come out.
+    // propertyReadSideEffects: false,
+    // tryCatchDeoptimization: false,
+    // unknownGlobalSideEffects: false,
+    // correctVarValueBeforeDeclaration: false,
+  },
+};
+
+export default configCombos.map(({ moduleSystem, jsVersion, debugConfig }) => ({
+  ...baseRollupConfig,
+  output: {
+    ...baseRollupConfig.output,
+    // equivalent to tsconfig's `outDir`
+    // ends up being something like `dist/es6-debug` or `esm/es5`
+    dir: path.join(moduleSystem.dir, `${jsVersion.version}${debugConfig.isDebug ? '-debug' : ''}`),
+    // equivalent to tsconfig's `module`, either `esm` or `cjs`
+    format: moduleSystem.name,
+  },
+  plugins: [
+    ...baseRollupConfig.plugins,
+    // controls whether to strip out log statements
+    ...(debugConfig.plugins || []),
+    // controls whether to down-compile
+    ...(jsVersion.plugins || []),
+  ],
+}));
+
+// // not every package will need all of these - will just end up with empty includes
+// const filesByTypes = getIncludesByType();
+// const platforms = [
+//   {
+//     include: filesByTypes.dom,
+//     compilerOptions: {
+//       lib: ["lib.dom.d.ts"],
+//     },
+//   },
+//   // TODO: for non-dom ones, need to get `console` into the global namespace
+//   {
+//     include: filesByTypes.node,
+//     compilerOptions: {
+//       types: ["node"],
+//     },
+//   },
+//   {
+//     include: filesByTypes.none,
+//     compilerOptions: {},
+//   },
+// ];
+
+// eslint-disable-next-line no-unused-vars
+const perhapsNeededLater = [
+  // This does string replacement, which can be useful for treeshaking (replace the test in an `if`
+  // condition with `false`, and the entire block (and the `if` itself) will get dropped from the built
+  // files.)
+  replace({
+    // don't replace `__placeholder__` where it's followed immediately by a single `=` (to prevent ending up
+    // with something of the form `let "replacementValue" = "some assigned value"`, which would cause a
+    // syntax error)
+    preventAssignment: true,
+    // the replacements to make
+    values: {
+      __SENTRY_BROWSER_BUNDLE__: false,
+      __SENTRY_NO_DEBUG__: false,
+    },
+  }),
+
+  // this turns the symlinks between the monorepo packages into real paths
+  // not clear if this is necessary
+  resolve({
+    extensions: ['.js', '.ts'],
+  }),
+
+  // possibly needed for nextjs? except it ignores requires in try-catch blocks, which is the only place we have a
+  // require, so maybe not
+  commonjs({
+    ignoreDynamicRequires: true,
+    dynamicRequireTargets: ['src/utils/instrumentServer.js'],
+  }),
+
+  // down-compile ES6 language featues (but not polyfills for additions to built-in classes) - very fast,
+  // but needs a companion polyfill plugin
+  buble({
+    transforms: {
+      // this is equivalent to TS's for-of transformation, but skips some obscure edge cases
+      // see https://buble.surge.sh/guide/#dangerous-transforms
+      dangerousForOf: true,
+    },
+    objectAssign: 'Object.assign',
+  }),
+];

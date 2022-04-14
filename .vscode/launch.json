@@ -30,8 +30,13 @@
       "outFiles": ["${workspaceFolder}/**/*.js", "!**/node_modules/**"],
       "sourceMaps": true,
       "smartStep": true,
-      "internalConsoleOptions": "openOnSessionStart",
-      "outputCapture": "std"
+            // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on
+      // "outputCapture" option here; default is to show console logs), but not both
+      "console": "integratedTerminal",
+      // since we're not using it, don't automatically switch to it
+      "internalConsoleOptions": "neverOpen"
+      // "internalConsoleOptions": "openOnSessionStart",
+      // "outputCapture": "std"
     },
     // Run a specific test file in watch mode (must have file in currently active tab when hitting the play button).
     // NOTE: If you try to run this and VSCode complains that the command `shellCommand.execute` can't be found, go

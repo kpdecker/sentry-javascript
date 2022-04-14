@@ -1,0 +1,14 @@
+- figure out watch
+- eventually do bundles with sucrase
+- esmoduleinterop - gatsby, integrations, react, vue
+- non-standard entrypoints - integrations, nextjs
+- fix helpers being included in every file
+- check - integrations, nextjs, react, serverless
+- verify that sourcemaps work
+
+
+
+Options:
+- use sucrase in dev, tsc in prod
+- use sucrase in dev and PRs, tsc for master and release branches
+- use sucrase everywhere

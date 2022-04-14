@@ -1,10 +1,12 @@
 /**
+ * Regex Replace plugin docs: https://github.com/jetiny/rollup-plugin-re
  * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
 import * as path from 'path';
 
+// import regexReplace from 'rollup-plugin-re';
 import replace from '@rollup/plugin-replace';
 import sucrase from '@rollup/plugin-sucrase';
 
@@ -70,6 +72,21 @@ export function makeWatchDependenciesPlugin(watchPackages) {
         const cwd = process.cwd();
         watchPackages.forEach(pkg => this.addWatchFile(path.resolve(cwd, `../${pkg}`)));
       }
+    },
+  };
+}
+
+/**
+ * TODO!!!!!
+ *
+ * @returns
+ */
+export function makeDebuggerPlugin() {
+  return {
+    name: 'debugger-plugin',
+    transform: () => {
+      debugger;
+      return null;
     },
   };
 }

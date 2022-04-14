@@ -1,0 +1,21 @@
+Compared to ES6 version of current output
+
+- `export * from xxx` gets split out into individual exports
+- leaves object spread alone rather than using `Object.assign`
+- doesn't remove blank lines in original source
+- all exports at the bottom
+- always define an export and actually export it separately
+- adds file extensions onto imported files
+- keeps a different subset of /// comments (removes types but often not their docstrings)
+- gets rid of some es-lint ignore comments
+- const enum values splt out (see syncPromise.ts)
+- in constructor, splits each assignment of a constant into its own function (see syncPromise.ts), omits properties set to undefined, and does normal assignment for properties which are variables passed to the constructor. Never uses `Object.defineProperty`.
+- in cjs output, no `_1` added to the end of every module identifier
+- reaches through module index files if they re-export stuff to pull from the original file
+- order of imports is sometimes rearranged
+- optional chaining is done with a helper
+- adds helpers to every file that needs them rather than importing (can we fix this? see where helpers are used)
+- rollup has helper for esmoduleinterop, which also appears in every file that needs it
+- doesn't polyfill async (yay no more node 6)
+- adds `__source` property to `React.createElement()` calls - what will filename look like when it's built on GHA? strip
+- uses camelcase rather than snake case for imported 3rd-party modules

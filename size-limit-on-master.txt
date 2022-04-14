@@ -1,0 +1,15 @@
+on master:
+
+  SDK builds
+  size-limit:
+    calculate current commit's numbers
+    store json as artifact with SHA identifier
+
+on pr:
+  dowload base commit's size-limit json artifact
+  if not found, kick off build job for base commit, store json as artifact when done
+  SDK builds
+  size-limit:
+    calculate current commit's numbers
+    wait for base commit's build, if necessary
+    do comparing

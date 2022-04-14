@@ -33,7 +33,7 @@ const fallbackGlobalObject = {};
  *
  * @returns Global scope object
  */
-export function getGlobalObject<T>(): T & SentryGlobal {
+export function getGlobalObject<T>(): T & SentryGlobal & { console: Console } {
   return (
     isNodeEnv()
       ? global
@@ -42,8 +42,14 @@ export function getGlobalObject<T>(): T & SentryGlobal {
       : typeof self !== 'undefined'
       ? self
       : fallbackGlobalObject
-  ) as T & SentryGlobal;
+  ) as T & SentryGlobal & { console: Console };
 }
+
+export type Console = {
+  warn: (...args: any[]) => void;
+  log: (...args: any[]) => void;
+  error: (...args: any[]) => void;
+};
 
 /**
  * Returns a global singleton contained in the global `__SENTRY__` object.
