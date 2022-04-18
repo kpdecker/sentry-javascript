@@ -26,10 +26,10 @@ function mixinProperties<TTarget extends object, TProto>(obj: TTarget, proto: TP
   return obj as TTarget & TProto;
 }
 
-export function nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs;
-  } else {
-    return rhsFn();
-  }
-}
+// export function nullishCoalesce(lhs, rhsFn) {
+//   if (lhs != null) {
+//     return lhs;
+//   } else {
+//     return rhsFn();
+//   }
+// }
