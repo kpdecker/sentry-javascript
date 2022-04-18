@@ -6,7 +6,7 @@
 
 import * as path from 'path';
 
-// import regexReplace from 'rollup-plugin-re';
+import regexReplace from 'rollup-plugin-re';
 import replace from '@rollup/plugin-replace';
 import sucrase from '@rollup/plugin-sucrase';
 
@@ -89,4 +89,20 @@ export function makeDebuggerPlugin() {
       return null;
     },
   };
+}
+
+/**
+ * TODO!!!!
+ *
+ * @returns
+ */
+export function makeRemoveESLintCommentsPlugin() {
+  return regexReplace({
+    patterns: [
+      {
+        test: /\/\/ eslint-disable.*\n/,
+        replace: '',
+      },
+    ],
+  });
 }

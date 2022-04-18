@@ -1,14 +1,22 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 Object.defineProperty(exports, '__esModule', { value: true });
-const utils_1 = require('@sentry/utils');
-const router_1 = require('next/router');
-const global = utils_1.getGlobalObject();
-const DEFAULT_TAGS = {
+
+var utils = require('@sentry/utils');
+var Router = require('next/router');
+
+var _interopDefault = e => (e && e.__esModule ? e.default : e);
+
+var Router__default = /*#__PURE__*/ _interopDefault(Router);
+
+var global = utils.getGlobalObject();
+
+var DEFAULT_TAGS = {
   'routing.instrumentation': 'next-router',
 };
+
 let activeTransaction = undefined;
 let prevTransactionName = undefined;
 let startTransaction = undefined;
+
 /**
  * Creates routing instrumention for Next Router. Only supported for
  * client side routing. Works for Next >= 10.
@@ -23,14 +31,14 @@ function nextRouterInstrumentation(
   startTransactionOnLocationChange = true,
 ) {
   startTransaction = startTransactionCb;
-  router_1.default.ready(() => {
+  Router__default.ready(() => {
     // We can only start the pageload transaction when we have access to the parameterized
     // route name. Setting the transaction name after the transaction is started could lead
     // to possible race conditions with the router, so this approach was taken.
     if (startTransactionOnPageLoad) {
       prevTransactionName =
-        router_1.default.route !== null
-          ? utils_1.stripUrlQueryAndFragment(router_1.default.route)
+        Router__default.route !== null
+          ? utils.stripUrlQueryAndFragment(Router__default.route)
           : global.location.pathname;
       activeTransaction = startTransactionCb({
         name: prevTransactionName,
@@ -38,27 +46,29 @@ function nextRouterInstrumentation(
         tags: DEFAULT_TAGS,
       });
     }
+
     // Spans that aren't attached to any transaction are lost; so if transactions aren't
     // created (besides potentially the onpageload transaction), no need to wrap the router.
     if (!startTransactionOnLocationChange) return;
+
     // `withRouter` uses `useRouter` underneath:
     // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/with-router.tsx#L21
     // Router events also use the router:
     // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/router.ts#L92
     // `Router.changeState` handles the router state changes, so it may be enough to only wrap it
     // (instead of wrapping all of the Router's functions).
-    const routerPrototype = Object.getPrototypeOf(router_1.default.router);
-    utils_1.fill(routerPrototype, 'changeState', changeStateWrapper);
+    var routerPrototype = Object.getPrototypeOf(Router__default.router);
+    utils.fill(routerPrototype, 'changeState', changeStateWrapper);
   });
 }
-exports.nextRouterInstrumentation = nextRouterInstrumentation;
+
 /**
  * Wraps Router.changeState()
  * https://github.com/vercel/next.js/blob/da97a18dafc7799e63aa7985adc95f213c2bf5f3/packages/next/next-server/lib/router/router.ts#L1204
  * Start a navigation transaction every time the router changes state.
  */
 function changeStateWrapper(originalChangeStateWrapper) {
-  const wrapper = function (
+  var wrapper = function (
     method,
     // The parameterized url, ex. posts/[id]/[comment]
     url,
@@ -70,13 +80,17 @@ function changeStateWrapper(originalChangeStateWrapper) {
     // internal API.
     ...args
   ) {
-    const newTransactionName = utils_1.stripUrlQueryAndFragment(url);
+    var newTransactionName = utils.stripUrlQueryAndFragment(url);
     // do not start a transaction if it's from the same page
     if (startTransaction !== undefined && prevTransactionName !== newTransactionName) {
       if (activeTransaction) {
         activeTransaction.finish();
       }
-      const tags = Object.assign(Object.assign(Object.assign({}, DEFAULT_TAGS), { method }), options);
+      var tags = {
+        ...DEFAULT_TAGS,
+        method,
+        ...options,
+      };
       if (prevTransactionName) {
         tags.from = prevTransactionName;
       }
@@ -91,4 +105,6 @@ function changeStateWrapper(originalChangeStateWrapper) {
   };
   return wrapper;
 }
+
+exports.nextRouterInstrumentation = nextRouterInstrumentation;
 //# sourceMappingURL=client.js.map

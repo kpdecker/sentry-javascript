@@ -1,3 +1,5 @@
+Object.defineProperty(exports, '__esModule', { value: true });
+
 /*
  * This file defines flags and constants that can be modified during compile time in order to facilitate tree shaking
  * for users.
@@ -11,7 +13,9 @@
  * our, or the user's build process. Take care when introducing new flags - they must not throw if they are not
  * replaced.
  */
-Object.defineProperty(exports, '__esModule', { value: true });
+
 /** Flag that is true for debug builds, false otherwise. */
-exports.IS_DEBUG_BUILD = typeof __SENTRY_DEBUG__ === 'undefined' ? true : __SENTRY_DEBUG__;
+var IS_DEBUG_BUILD = typeof __SENTRY_DEBUG__ === 'undefined' ? true : __SENTRY_DEBUG__;
+
+exports.IS_DEBUG_BUILD = IS_DEBUG_BUILD;
 //# sourceMappingURL=flags.js.map

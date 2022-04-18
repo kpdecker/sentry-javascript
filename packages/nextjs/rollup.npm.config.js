@@ -3,7 +3,9 @@ import deepMerge from 'deepmerge';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js';
 
 const baseConfig = makeBaseNPMConfig({
-  entrypoint: ['src/index.server.ts', 'src/index.client.ts'],
+  // We need to include `instrumentServer.ts` separately because it's only conditionally required, and so rollup doesn't automatically include it when calculating the module dependency tree
+  // entrypoint: ['src/index.server.ts', 'src/index.client.ts', 'src/utils/instrumentServer.ts'],
+  entrypoint: ['src/sucraseTest.ts'],
   esModuleInterop: true,
   watchPackages: ['integrations', 'node', 'react', 'tracing'],
 });

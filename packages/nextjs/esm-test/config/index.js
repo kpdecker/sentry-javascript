@@ -1,4 +1,5 @@
-import { constructWebpackConfigFunction } from './webpack';
+import { constructWebpackConfigFunction } from './webpack.js';
+
 /**
  * Add Sentry options to the config to be exported from the user's `next.config.js` file.
  *
@@ -6,20 +7,25 @@ import { constructWebpackConfigFunction } from './webpack';
  * @param userSentryWebpackPluginOptions Configuration for SentryWebpackPlugin
  * @returns The modified config to be exported
  */
-export function withSentryConfig(userNextConfig = {}, userSentryWebpackPluginOptions = {}) {
+function withSentryConfig(userNextConfig = {}, userSentryWebpackPluginOptions = {}) {
   // If the user has passed us a function, we need to return a function, so that we have access to `phase` and
   // `defaults` in order to pass them along to the user's function
   if (typeof userNextConfig === 'function') {
     return function (phase, defaults) {
-      const materializedUserNextConfig = userNextConfig(phase, defaults);
-      return Object.assign(Object.assign({}, materializedUserNextConfig), {
+      var materializedUserNextConfig = userNextConfig(phase, defaults);
+      return {
+        ...materializedUserNextConfig,
         webpack: constructWebpackConfigFunction(materializedUserNextConfig, userSentryWebpackPluginOptions),
-      });
+      };
     };
   }
+
   // Otherwise, we can just merge their config with ours and return an object.
-  return Object.assign(Object.assign({}, userNextConfig), {
+  return {
+    ...userNextConfig,
     webpack: constructWebpackConfigFunction(userNextConfig, userSentryWebpackPluginOptions),
-  });
+  };
 }
+
+export { withSentryConfig };
 //# sourceMappingURL=index.js.map

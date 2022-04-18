@@ -1,46 +1,57 @@
 Object.defineProperty(exports, '__esModule', { value: true });
-const tslib_1 = require('tslib');
-const react_1 = require('@sentry/react');
-const tracing_1 = require('@sentry/tracing');
-exports.BrowserTracing = tracing_1.BrowserTracing;
-const client_1 = require('./performance/client');
-const metadata_1 = require('./utils/metadata');
-const userIntegrations_1 = require('./utils/userIntegrations');
-tslib_1.__exportStar(require('@sentry/react'), exports);
-var client_2 = require('./performance/client');
-exports.nextRouterInstrumentation = client_2.nextRouterInstrumentation;
-exports.Integrations = Object.assign(Object.assign({}, react_1.Integrations), {
-  BrowserTracing: tracing_1.BrowserTracing,
-});
+
+var react = require('@sentry/react');
+var tracing = require('@sentry/tracing');
+var client = require('./performance/client.js');
+var metadata = require('./utils/metadata.js');
+var userIntegrations = require('./utils/userIntegrations.js');
+
+var Integrations = { ...react.Integrations, BrowserTracing: tracing.BrowserTracing };
+
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 function init(options) {
-  metadata_1.buildMetadata(options, ['nextjs', 'react']);
+  metadata.buildMetadata(options, ['nextjs', 'react']);
   options.environment = options.environment || process.env.NODE_ENV;
+
   // Only add BrowserTracing if a tracesSampleRate or tracesSampler is set
-  const integrations =
+  var integrations =
     options.tracesSampleRate === undefined && options.tracesSampler === undefined
       ? options.integrations
       : createClientIntegrations(options.integrations);
-  react_1.init(Object.assign(Object.assign({}, options), { integrations }));
-  react_1.configureScope(scope => {
+
+  react.init({
+    ...options,
+    integrations,
+  });
+
+  react.configureScope(scope => {
     scope.setTag('runtime', 'browser');
-    const filterTransactions = event => (event.type === 'transaction' && event.transaction === '/404' ? null : event);
+    var filterTransactions = event => (event.type === 'transaction' && event.transaction === '/404' ? null : event);
     filterTransactions.id = 'NextClient404Filter';
     scope.addEventProcessor(filterTransactions);
   });
 }
-exports.init = init;
-const defaultBrowserTracingIntegration = new tracing_1.BrowserTracing({
-  tracingOrigins: [...tracing_1.defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
-  routingInstrumentation: client_1.nextRouterInstrumentation,
+
+var defaultBrowserTracingIntegration = new tracing.BrowserTracing({
+  tracingOrigins: [...tracing.defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
+  routingInstrumentation: client.nextRouterInstrumentation,
 });
+
 function createClientIntegrations(integrations) {
   if (integrations) {
-    return userIntegrations_1.addIntegration(defaultBrowserTracingIntegration, integrations, {
-      BrowserTracing: { keyPath: 'options.routingInstrumentation', value: client_1.nextRouterInstrumentation },
+    return userIntegrations.addIntegration(defaultBrowserTracingIntegration, integrations, {
+      BrowserTracing: { keyPath: 'options.routingInstrumentation', value: client.nextRouterInstrumentation },
     });
   } else {
     return [defaultBrowserTracingIntegration];
   }
+}
+
+exports.BrowserTracing = tracing.BrowserTracing;
+exports.nextRouterInstrumentation = client.nextRouterInstrumentation;
+exports.Integrations = Integrations;
+exports.init = init;
+for (var k in react) {
+  if (k !== 'default' && !exports.hasOwnProperty(k)) exports[k] = react[k];
 }
 //# sourceMappingURL=index.client.js.map

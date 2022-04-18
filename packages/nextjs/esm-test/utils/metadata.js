@@ -1,11 +1,13 @@
 import { SDK_VERSION } from '@sentry/core';
-const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
+
+var PACKAGE_NAME_PREFIX = 'npm:@sentry/';
+
 /**
  * A builder for the SDK metadata in the options for the SDK initialization.
  * @param options sdk options object that gets mutated
  * @param names list of package names
  */
-export function buildMetadata(options, names) {
+function buildMetadata(options, names) {
   options._metadata = options._metadata || {};
   options._metadata.sdk = options._metadata.sdk || {
     name: 'sentry.javascript.nextjs',
@@ -16,4 +18,6 @@ export function buildMetadata(options, names) {
     version: SDK_VERSION,
   };
 }
+
+export { buildMetadata };
 //# sourceMappingURL=metadata.js.map
