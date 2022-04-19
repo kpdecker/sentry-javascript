@@ -58,6 +58,7 @@ const recastPlugin = {
     //   .filter(node => node.type === 'FunctionDeclaration' && POLYFILL_NAMES.has(node.id.name))
     //   .map(node => node.id.name);
     console.log(`Found polyfill nodes in ${fileName}: ${fnDeclarationNames}`);
+    console.log(`Nodes to delete: ${ast.program.body.filter(node => node.shouldDelete).map(node => node.id.name)}`);
     const fnName = fnDeclarationNames[0];
     const { callExpression, identifier, literal, objectPattern, property, variableDeclaration, variableDeclarator } =
       recast.types.builders;
@@ -85,14 +86,20 @@ const recastPlugin = {
 };
 
 function findPolyfillNodes(ast) {
-  return ast.program.body.filter((node, index) => {
+  const polyfillNodes = ast.program.body.filter((node, index) => {
     if (node.type === 'FunctionDeclaration' && POLYFILL_NAMES.has(node.id.name)) {
-      node.bodyIndex = index;
+      node.shouldDelete = true;
       return true;
     }
 
     return false;
   });
+
+  return polyfillNodes;
+}
+
+function createRequireNodes(polyfillNodes) {
+  const newNodes = polyfillNodes.map();
 }
 
 export default makeNPMConfigVariants(
