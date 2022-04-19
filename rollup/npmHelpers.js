@@ -12,7 +12,7 @@ import { makeConstToVarPlugin, makeNodeResolvePlugin, makeSucrasePlugin } from '
 const packageDotJSON = require(path.resolve(process.cwd(), './package.json'));
 
 export function makeBaseNPMConfig(options = {}) {
-  const { entrypoint, esModuleInterop } = options;
+  const { entrypoint, esModuleInterop, hasBundles } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -21,6 +21,9 @@ export function makeBaseNPMConfig(options = {}) {
   return {
     input: entrypoint || 'src/index.ts',
     output: {
+      // an appropriately-named directory will be added to this base value when we specify either a cjs or esm build
+      dir: hasBundles ? 'build/npm' : 'build',
+
       sourcemap: true,
 
       // output individual files rather than one big bundle
@@ -70,16 +73,20 @@ export function makeBaseNPMConfig(options = {}) {
 }
 
 export function makeNPMConfigVariants(baseConfig) {
+  // export function makeNPMConfigVariants(baseConfig, options) {
+  //   const { hasBundles = false } = options;
   // const variantSpecificConfigs = [
-  //   { output: { format: 'cjs', dir: 'build/cjs' } },
-  //   { output: { format: 'esm', dir: 'build/esm' } },
+  //   { output: { format: 'cjs', dir: hasBundles ? 'build/npm/cjs' : 'build/cjs' } },
+  //   { output: { format: 'esm', dir: hasBundles ? 'build/npm/esm' : 'build/esm' } },
   // ];
 
   const variantSpecificConfigs = ['cjs', 'esm'].map(format => {
+    const outDir = path.join(baseConfig.output.dir, format);
+
     return {
       output: {
         format,
-        dir: `build/${format}`,
+        dir: outDir,
       },
     };
   });
