@@ -9,6 +9,7 @@ import deepMerge from 'deepmerge';
 
 import {
   makeConstToVarPlugin,
+  makeExtractPolyfillsPlugin,
   makeNodeResolvePlugin,
   makeRemoveESLintCommentsPlugin,
   makeSucrasePlugin,
@@ -93,12 +94,15 @@ export function makeNPMConfigVariants(baseConfig) {
 
   const variantSpecificConfigs = ['cjs', 'esm'].map(format => {
     const outDir = path.join(baseConfig.output.dir, format);
+    const extractPolyfillsPlugin = makeExtractPolyfillsPlugin({ outDir });
 
     return {
       output: {
         format,
         dir: outDir,
       },
+      // `deepMerge` will concatenate this `plugins` array with the existing `plugins` array, rather than overwrite it.
+      plugins: [extractPolyfillsPlugin],
     };
   });
 

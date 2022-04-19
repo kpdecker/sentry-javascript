@@ -106,3 +106,5 @@ export function makeRemoveESLintCommentsPlugin() {
     ],
   });
 }
+
+export { makeExtractPolyfillsPlugin } from './extractPolyfillsPlugin.js';
