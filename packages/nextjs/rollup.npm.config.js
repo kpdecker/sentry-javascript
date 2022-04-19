@@ -31,63 +31,125 @@ const POLYFILL_NAMES = new Set([
   '_optionalChainDelete',
 ]);
 
-const recastPlugin = {
-  name: 'recast',
-  renderChunk(code, chunk) {
-    const { fileName } = chunk;
-    // console.log(`Checking ${fileName}...`);
-    const ast = recast.parse(code, {
-      // We supply a custom parser which wraps the provided `acorn` parser in order to override the `ecmaVersion` value.
-      // See https://github.com/benjamn/recast/issues/578.
-      parser: {
-        parse(source, options) {
-          return acornParser.parse(source, {
-            ...options,
-            ecmaVersion: 'latest',
-          });
+function makeExtractPolyfillsPlugin(options) {
+  const { outputFormat, outputDir } = options;
+
+  const recastPlugin = {
+    name: 'recast',
+    renderChunk(code, chunk) {
+      const isCJS = code.startsWith("Object.defineProperty(exports, '__esModule', { value: true });");
+      const { fileName } = chunk;
+      const ast = recast.parse(code, {
+        // We supply a custom parser which wraps the provided `acorn` parser in order to override the `ecmaVersion` value.
+        // See https://github.com/benjamn/recast/issues/578.
+        parser: {
+          parse(source, options) {
+            return acornParser.parse(source, {
+              ...options,
+              ecmaVersion: 'latest',
+            });
+          },
         },
-      },
-    });
-    const polyfillNodes = findPolyfillNodes(ast);
-    if (polyfillNodes.length === 0) {
-      console.log(`No polyfill nodes found in ${fileName}`);
-      return null;
+        quote: 'single',
+      });
+      const polyfillNodes = findPolyfillNodes(ast);
+      if (polyfillNodes.length === 0) {
+        // console.log(`No polyfill nodes found in ${fileName}`);
+        return null;
+      }
+      const fnDeclarationNames = polyfillNodes.map(node => getNodeName(node));
+      // const fnDeclarationNames = ast.program.body
+      //   .filter(node => node.type === 'FunctionDeclaration' && POLYFILL_NAMES.has(node.id.name))
+      //   .map(node => node.id.name);
+      console.log(`Found polyfill nodes in ${fileName}: ${fnDeclarationNames}`);
+      console.log(
+        `Nodes to delete: ${ast.program.body.filter(node => node.shouldDelete).map(node => getNodeName(node))}`,
+      );
+      // const fnName = fnDeclarationNames[0];
+      // const { callExpression, identifier, literal, objectPattern, property, variableDeclaration, variableDeclarator } =
+      //   recast.types.builders;
+      // const newNode = variableDeclaration('var', [
+      //   variableDeclarator(
+      //     objectPattern([
+      //       // property(
+      //       //   'init',
+      //       //   identifier('dog'), // key
+      //       //   identifier('dog'), // value
+      //       // ),
+      //       property.from({ kind: 'init', key: identifier(fnName), value: identifier(fnName), shorthand: true }),
+      //     ]),
+      //     callExpression(identifier('require'), [literal(`${fnName}.js`)]),
+      //   ),
+      // ]);
+      const polyfillRequireNodes = createRequireNodes(polyfillNodes);
+      if (fileName === 'config/webpack.js') {
+        const bodyNodes = ast.program.body.map((node, index) => [index, node.type, getNodeName(node)]);
+        debugger;
+        // console.log(code);
+        console.log(bodyNodes);
+      }
+      // Insert our new `require` nodes at the top of the file, and then delete the function definitions they're meant to
+      // replace
+      ast.program.body = [...polyfillRequireNodes, ...ast.program.body.filter(node => !node.shouldDelete)];
+
+      if (fileName === 'config/webpack.js') {
+        const bodyNodes = ast.program.body.map((node, index) => [index, node.type, getNodeName(node)]);
+        debugger;
+        // console.log(code);
+        console.log(bodyNodes);
+      }
+
+      const output = recast.print(ast).code;
+
+      // return { code: string, map: SourceMap }
+      return output;
+    },
+  };
+
+  return recastPlugin;
+}
+
+function getNodeName(node) {
+  if (node.type === 'VariableDeclaration') {
+    // in practice sucrase and rollup only ever declare one polyfill at a time, so it's safe to just grab the first
+    // entry here
+    const declarationId = node.declarations[0].id;
+
+    // sucrase and rollup seem to only use the first type of variable declaration for their polyfills, but good to cover
+    // our bases
+
+    // `const dogs = function() { return "are great"; };`
+    // or
+    // `const dogs = () => "are great";
+    if (declarationId.type === 'Identifier') {
+      return declarationId.name;
     }
-    const fnDeclarationNames = polyfillNodes.map(node => node.id.name);
-    // const fnDeclarationNames = ast.program.body
-    //   .filter(node => node.type === 'FunctionDeclaration' && POLYFILL_NAMES.has(node.id.name))
-    //   .map(node => node.id.name);
-    console.log(`Found polyfill nodes in ${fileName}: ${fnDeclarationNames}`);
-    console.log(`Nodes to delete: ${ast.program.body.filter(node => node.shouldDelete).map(node => node.id.name)}`);
-    const fnName = fnDeclarationNames[0];
-    const { callExpression, identifier, literal, objectPattern, property, variableDeclaration, variableDeclarator } =
-      recast.types.builders;
-    const newNode = variableDeclaration('var', [
-      variableDeclarator(
-        objectPattern([
-          // property(
-          //   'init',
-          //   identifier('dog'), // key
-          //   identifier('dog'), // value
-          // ),
-          property.from({ kind: 'init', key: identifier(fnName), value: identifier(fnName), shorthand: true }),
-        ]),
-        callExpression(identifier('require'), [literal(`${fnName}.js`)]),
-      ),
-    ]);
-    ast.program.body[1] = newNode;
-    const output = recast.print(ast).code;
+    // `const { dogs } = { dogs: function() { return "are great"; } }`
+    // or
+    // `const { dogs } = { dogs: () => "are great" }`
+    else if (declarationId.type === 'ObjectPattern') {
+      return declarationId.properties[0].key.name;
+    }
+    // any other format
+    else {
+      return 'unknown variable';
+    }
+  }
 
-    debugger;
+  // `function dogs() { return "are great"; }`
+  else if (node.type === 'FunctionDeclaration') {
+    return node.id.name;
+  }
 
-    // return { code: string, map: SourceMap }
-    return output;
-  },
-};
+  // this isn't a node we're interested in, so just return a string we know will never match one of the polyfill names
+  else {
+    return 'n/a';
+  }
+}
 
 function findPolyfillNodes(ast) {
-  const polyfillNodes = ast.program.body.filter((node, index) => {
-    if (node.type === 'FunctionDeclaration' && POLYFILL_NAMES.has(node.id.name)) {
+  const polyfillNodes = ast.program.body.filter(node => {
+    if (POLYFILL_NAMES.has(getNodeName(node))) {
       node.shouldDelete = true;
       return true;
     }
@@ -99,7 +161,25 @@ function findPolyfillNodes(ast) {
 }
 
 function createRequireNodes(polyfillNodes) {
-  const newNodes = polyfillNodes.map();
+  const { callExpression, identifier, literal, objectPattern, property, variableDeclaration, variableDeclarator } =
+    recast.types.builders;
+  const newNodes = polyfillNodes.map(polyfillNode => {
+    const fnName = getNodeName(polyfillNode);
+    // This creates code equivalent to the template literal
+    //    `var { ${fnName} } = require('${fnName}.js')`
+    const newNode = variableDeclaration('var', [
+      variableDeclarator(
+        objectPattern([
+          property.from({ kind: 'init', key: identifier(fnName), value: identifier(fnName), shorthand: true }),
+        ]),
+        callExpression(identifier('require'), [literal(`${fnName}.js`)]),
+      ),
+    ]);
+
+    return newNode;
+  });
+
+  return newNodes;
 }
 
 export default makeNPMConfigVariants(
@@ -108,7 +188,7 @@ export default makeNPMConfigVariants(
     // of nextjs and rollup doesn't automatically make the connection, so we have to exclude it manually. (Note that
     // `deepMerge` will concatenate this array with the existing `external` array, rather than overwrite it.)
     external: ['next/router'],
-    plugins: [recastPlugin],
+    plugins: [makeExtractPolyfillsPlugin({ outputFormat: 'TODO need to copy files' })],
   }),
 );
 
