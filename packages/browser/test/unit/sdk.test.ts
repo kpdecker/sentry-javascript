@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { NoopTransport, Scope } from '@sentry/core';
+import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
 import { Client, Integration } from '@sentry/types';
 
-import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
-
-import { init } from '../../src/sdk';
 import { BrowserOptions } from '../../src';
+import { init } from '../../src/sdk';
 // eslint-disable-next-line no-var
 declare var global: any;
 
@@ -62,8 +62,8 @@ describe('init', () => {
 
     init(options);
 
-    expect((DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).mock.calls.length).toBe(1);
-    expect((DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).mock.calls.length).toBe(1);
+    expect(DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
   });
 
   test("doesn't install default integrations if told not to", () => {
@@ -74,20 +74,17 @@ describe('init', () => {
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: false });
     init(options);
 
-    expect((DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).mock.calls.length).toBe(0);
-    expect((DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).mock.calls.length).toBe(0);
+    expect(DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
+    expect(DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
   });
 
   it('installs merged default integrations, with overrides provided through options', () => {
-    const DEFAULT_INTEGRATIONS: Integration[] = [
+    const DEFAULT_INTEGRATIONS = [
       new MockIntegration('MockIntegration 1.1'),
       new MockIntegration('MockIntegration 1.2'),
     ];
 
-    const integrations: Integration[] = [
-      new MockIntegration('MockIntegration 1.1'),
-      new MockIntegration('MockIntegration 1.3'),
-    ];
+    const integrations = [new MockIntegration('MockIntegration 1.1'), new MockIntegration('MockIntegration 1.3')];
     const options = getDefaultBrowserOptions({
       dsn: PUBLIC_DSN,
       defaultIntegrations: DEFAULT_INTEGRATIONS,
@@ -103,7 +100,7 @@ describe('init', () => {
   });
 
   it('installs integrations returned from a callback function', () => {
-    const DEFAULT_INTEGRATIONS: Integration[] = [
+    const DEFAULT_INTEGRATIONS = [
       new MockIntegration('MockIntegration 2.1'),
       new MockIntegration('MockIntegration 2.2'),
     ];
